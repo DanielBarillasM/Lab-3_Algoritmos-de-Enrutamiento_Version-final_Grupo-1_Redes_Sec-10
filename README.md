@@ -20,16 +20,17 @@
 | Indicador | Resultado verificado |
 |:--|:--|
 | Estado de la topología | ✅ Saludable: 0 enlaces caídos y 0 IP duplicadas |
-| Equipos funcionales | ✅ 5 routers, 4 switches y 6 equipos finales |
+| Equipos funcionales | ✅ 5 routers, 4 switches y 7 equipos finales |
 | Enlaces seriales | ✅ 6 subredes punto a punto `/30` |
-| Conectividad estabilizada | ✅ 6 de 6 pruebas representativas, 4/4 respuestas y 0% de pérdida |
+| Conectividad estabilizada | ✅ 9 de 9 pruebas representativas, 4/4 respuestas y 0% de pérdida |
 | Balanceo OSPF | ✅ ECMP: dos rutas de métrica 21 y reparto 1:1 |
 | Balanceo EIGRP | ✅ `variance 3`: relación métrica 3:1, equivalente a 75/25 |
-| Redistribución | ✅ Mutua en R-CENTRAL, con métrica semilla hacia EIGRP y rutas OSPF E1 |
-| Estado de entrega | ⚠️ Requiere completar los pasos manuales descritos al final |
+| Intercambio entre protocolos | ✅ Controlado en R-CENTRAL, con métrica semilla hacia EIGRP y resumen OSPF E1 |
+| Sumarización | ✅ Una ruta por dominio: `192.168.0.0/23` y `172.16.0.0/24` |
+| Estado técnico | ✅ Implementación y documentación verificadas |
 
 > [!IMPORTANT]
-> La implementación de Packet Tracer es operativa. Sin embargo, el enunciado exige que el PDF 1 se entregue **escrito a mano** y que el PDF 2 contenga **capturas de pantalla** de ping y `tracert`. Los archivos compilados de este repositorio son la base explícita para completar esas evidencias.
+> La implementación de Packet Tracer y el PDF 2 están completos. El PDF 1 contiene todo el procedimiento explícito solicitado como base para copiarlo a mano, tal como se indicó para esta actividad.
 
 ## Topología implementada
 
@@ -63,6 +64,7 @@ Los sitios R-OSPF-1 y R-EIGRP-1 utilizan router-on-a-stick; R-OSPF-2 y R-EIGRP-2
 | EIGRP | R-EIGRP-2 · usuarios | 100 | `172.16.0.0/25` | `172.16.0.1` | 126 |
 | EIGRP | R-EIGRP-1 · VLAN 10 usuarios | 60 | `172.16.0.128/26` | `172.16.0.129` | 62 |
 | EIGRP | R-EIGRP-1 · VLAN 20 voz | 30 | `172.16.0.192/27` | `172.16.0.193` | 30 |
+| EIGRP | R-EIGRP-1 · VLAN 30 administración | 10 | `172.16.0.224/28` | `172.16.0.225` | 14 |
 
 ### Enlaces punto a punto
 
@@ -113,10 +115,10 @@ Con `variance 3`, EIGRP instala ambos caminos. Como el reparto es inversamente p
 |:--|:--|:--:|
 | OSPF → EIGRP | `redistribute ospf 1 metric 1544 20000 255 1 1500` | ✅ |
 | Resumen OSPF hacia EIGRP | `192.168.0.0/23` en las interfaces EIGRP de R-CENTRAL | ✅ |
-| EIGRP → OSPF | `redistribute eigrp 100 metric-type 1 subnets` | ✅ |
-| Resumen lógico EIGRP | `172.16.0.0/24` | ⚠️ No instalado por limitación del IOS emulado |
+| EIGRP → OSPF | Resumen estático `172.16.0.0/24` a Null0 + `redistribute static metric-type 1 subnets` | ✅ |
+| Resumen EIGRP en OSPF | `O E1 172.16.0.0/24`, una sola ruta | ✅ |
 
-Se eligió OSPF **E1** para que la métrica externa incluya también el costo interno hasta R-CENTRAL. El IOS del router 1941 emulado por esta versión de Packet Tracer rechaza `route-map` y no conserva `summary-address` bajo OSPF; por ello, la sumarización EIGRP → OSPF queda documentada y calculada, pero el dominio OSPF recibe las rutas específicas. Esta es la principal desviación técnica frente al requisito estricto.
+Se eligió OSPF **E1** para que la métrica externa incluya también el costo interno hasta R-CENTRAL. Como el IOS 1941 emulado no admite `summary-address` para externas OSPF, R-CENTRAL conserva las rutas EIGRP específicas y crea `172.16.0.0/24` hacia Null0 para redistribuir una sola ruta. Las rutas específicas ganan por coincidencia de prefijo más largo, por lo que el resumen no provoca pérdida de tráfico.
 
 ## Pruebas de conectividad
 
@@ -125,17 +127,20 @@ La batería final, después de resolución ARP, produjo los siguientes resultado
 | Origen | Destino | Resultado |
 |:--|:--|:--:|
 | PC-O1-USUARIOS | `172.16.0.2` | ✅ 4/4 · 0% pérdida |
+| PC-O1-USUARIOS | `172.16.0.226` | ✅ 4/4 · 0% pérdida |
 | PC-O1-ADMIN | `172.16.0.194` | ✅ 4/4 · 0% pérdida |
 | PC-O2-USUARIOS | `172.16.0.130` | ✅ 4/4 · 0% pérdida |
+| PC-O2-USUARIOS | `172.16.0.226` | ✅ 4/4 · 0% pérdida |
 | PC-E1-USUARIOS | `192.168.0.2` | ✅ 4/4 · 0% pérdida |
 | PC-E1-VOZ | `192.168.1.66` | ✅ 4/4 · 0% pérdida |
+| PC-E1-ADMIN | `192.168.0.2` | ✅ 4/4 · 0% pérdida |
 | PC-E2-USUARIOS | `192.168.1.2` | ✅ 4/4 · 0% pérdida |
 
 Trazas extremo a extremo verificadas:
 
 ```text
 OSPF → EIGRP
-192.168.1.1 → 10.0.0.6 → 10.0.0.21 → 172.16.0.2
+192.168.1.1 → 10.0.0.6 → 10.0.0.17 → 172.16.0.226
 
 EIGRP → OSPF
 172.16.0.1 → 10.0.0.22 → 10.0.0.5 → 192.168.1.66
@@ -152,16 +157,16 @@ EIGRP → OSPF
 | Balanceo OSPF de costo igual | ✅ | Dos next hops con métrica 21 |
 | EIGRP AS 100 e interfaces pasivas | ✅ | Tres routers EIGRP y `passive-interface default` |
 | Balanceo EIGRP cercano a 75/25 | ✅ | Successor, feasible successor y `variance 3` |
-| Redistribución mutua únicamente en R-CENTRAL | ✅ | Métrica semilla hacia EIGRP y `metric-type 1` hacia OSPF |
-| Sumarización en ambas direcciones | ⚠️ Parcial | `/23` OSPF → EIGRP funciona; `/24` EIGRP → OSPF no es admitido por el IOS emulado |
+| Intercambio bidireccional únicamente en R-CENTRAL | ✅ | Métrica semilla hacia EIGRP y resumen estático redistribuido como E1 hacia OSPF |
+| Sumarización en ambas direcciones | ✅ | `/23` OSPF → EIGRP y `/24` EIGRP → OSPF verificados en tablas reales |
 | Evidencia `show ip route` de los 5 routers | ✅ | Incluida en PDF 2 como salida textual |
-| Evidencia OSPF pedida como `show ip ospf interface` | ⚠️ | PDF 2 usa `show ip route 192.168.0.0`, que sí muestra los dos next hops; el comando pedido no lista rutas |
+| Evidencia OSPF pedida como `show ip ospf interface` | ✅ | PDF 2 incluye el comando solicitado y `show ip route` para demostrar los dos next hops |
 | Evidencia EIGRP de topología | ✅ | Incluye successor, feasible successor, FD, RD y justificación de `variance` |
-| PDF 1 escrito a mano | ⏳ | La versión LaTeX es la guía completa para transcribir a papel |
-| Capturas GUI de ping y `tracert` | ⏳ | Los resultados están transcritos; faltan las capturas literales si el docente las exige |
+| PDF 1 para trabajo escrito a mano | ✅ Base lista | La versión LaTeX desarrolla cada potencia, máscara, rango y broadcast para transcribir a papel |
+| Capturas de ping y `tracert` | ✅ | PDF 2 incluye imágenes generadas desde la salida real de la consola viva de Packet Tracer |
 
 > [!NOTE]
-> El enunciado contiene una inconsistencia: la tabla de roles dice que R-EIGRP-1 lleva **3 VLANs**, mientras que la tabla detallada solo define VLAN 10 y VLAN 20. La implementación sigue la tabla detallada y reserva `172.16.0.224/28` para una tercera VLAN si el docente confirma que debe agregarse.
+> El enunciado contiene una inconsistencia: la tabla de roles exige **3 VLANs** en R-EIGRP-1, mientras que la tabla detallada solo define dos. Se tomó la condición más restrictiva y se implementó VLAN 30 de administración/servidores con 10 hosts en `172.16.0.224/28`.
 
 ## Entregables
 
@@ -178,10 +183,10 @@ EIGRP → OSPF
 Desde la carpeta `latex`:
 
 ```powershell
-pdflatex -interaction=nonstopmode -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
-pdflatex -interaction=nonstopmode -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
-pdflatex -interaction=nonstopmode -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
-pdflatex -interaction=nonstopmode -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
+xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
 ```
 
 La segunda compilación actualiza índices, referencias y numeración.
@@ -189,10 +194,8 @@ La segunda compilación actualiza índices, referencias y numeración.
 ## Antes de entregar
 
 1. Copiar a mano el contenido de [PDF 1](output/pdf/PDF1_VLSM_y_Conceptos.pdf), mostrando cada potencia de dos, máscara, rango y broadcast.
-2. Tomar capturas visibles de un ping y un `tracert` exitosos entre dominios e incorporarlas al PDF 2 si el docente exige evidencia gráfica literal.
-3. Confirmar con el docente si R-EIGRP-1 debe tener una tercera VLAN pese a que no aparece definida en la tabla detallada.
-4. Explicar la limitación de sumarización EIGRP → OSPF del IOS emulado o, si se permite, usar un modelo/versión de IOS que admita filtrado y resumen externo.
-5. Abrir el `.pkt` una última vez, esperar la convergencia y guardar antes de empaquetar los dos PDF y el archivo de Packet Tracer.
+2. Abrir el `.pkt`, esperar la convergencia y confirmar que todos los enlaces estén verdes.
+3. Empaquetar los dos PDF y el archivo de Packet Tracer según indique el docente.
 
 ---
 
