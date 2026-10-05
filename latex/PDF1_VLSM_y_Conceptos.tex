@@ -13,7 +13,7 @@ Este documento funciona como base para transcribir a mano el procedimiento. No s
 El documento principal del laboratorio es la fuente de requisitos. Los documentos de direccionamiento, enrutamiento dinamico y configuracion OSPF se utilizaron como apoyo teorico. Por indicacion adicional del estudiante, los pasos se presentan con sustituciones numericas y comprobaciones explicitas.
 
 \begin{decision}[title={Aclaracion sobre R-EIGRP-1}]
-La tabla general del enunciado indica ``3 VLANs'', pero la tabla detallada solo define VLAN 10 (60 usuarios) y VLAN 20 (30 dispositivos de voz). Se implementaron esas dos VLAN porque son las unicas que tienen identificador, funcion y cantidad de hosts. Se reserva espacio dentro de \texttt{172.16.0.0/24} para una eventual tercera VLAN si el docente la especifica.
+La tabla general del enunciado exige ``3 VLANs'', mientras que la tabla detallada solo asigna proposito y cantidad de hosts a VLAN 10 (60 usuarios) y VLAN 20 (30 dispositivos de voz). Para satisfacer la condicion mas restrictiva se implemento una tercera VLAN 30 de administracion/servidores con 10 hosts, usando el siguiente bloque VLSM disponible. Esta decision no modifica los segmentos definidos: agrega una red pequena y coherente con el rol de un sitio de acceso.
 \end{decision}
 
 \section{Bloques base y estrategia VLSM}
@@ -150,6 +150,20 @@ $h=5$, $p=27$, mascara \texttt{255.255.255.224} y salto $256-224=32$.
 \end{align*}
 \end{calculo}
 
+\subsection{VLAN 30 de administracion/servidores: 10 hosts}
+\begin{calculo}
+\[
+2^3-2=6<10,\qquad 2^4-2=14\ge10.
+\]
+Se requieren $h=4$ bits de host, por lo que $p=32-4=28$. La mascara es \texttt{255.255.255.240}; el salto es $256-240=16$. El primer limite disponible despues de \texttt{172.16.0.223} es .224:
+\begin{align*}
+\text{Red} &= \texttt{172.16.0.224/28}, & \text{Primer host} &= \texttt{172.16.0.225},\\
+\text{Ultimo host} &= \texttt{172.16.0.238}, & \text{Broadcast} &= \texttt{172.16.0.239},\\
+\text{Desperdicio} &=14-10=4.&&
+\end{align*}
+La IP \texttt{172.16.0.225} se asigno al gateway y \texttt{172.16.0.226} al equipo de prueba.
+\end{calculo}
+
 \subsection{Resumen del VLSM EIGRP}
 \begin{center}
 \small
@@ -160,11 +174,12 @@ Segmento & Hosts & Prefijo & Red & Primer host & Ultimo host / broadcast & Libre
 R-EIGRP-2 usuarios & 100 & /25 & 172.16.0.0 & 172.16.0.1 & .126 / .127 & 26\\
 R-EIGRP-1 VLAN 10 & 60 & /26 & 172.16.0.128 & 172.16.0.129 & .190 / .191 & 2\\
 R-EIGRP-1 VLAN 20 & 30 & /27 & 172.16.0.192 & 172.16.0.193 & .222 / .223 & 0\\
+R-EIGRP-1 VLAN 30 & 10 & /28 & 172.16.0.224 & 172.16.0.225 & .238 / .239 & 4\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-El intervalo \texttt{172.16.0.224--172.16.0.255} queda libre. Dentro de este se puede reservar, por ejemplo, \texttt{172.16.0.224/28} para una tercera VLAN si el docente aclara la contradiccion del enunciado.
+El intervalo \texttt{172.16.0.240--172.16.0.255} permanece disponible para crecimiento. Las cuatro redes quedan contenidas dentro del resumen \texttt{172.16.0.0/24}.
 
 \section{Enlaces punto a punto}
 
@@ -212,6 +227,7 @@ R-CENTRAL & S0/1/0 & 10.0.0.18 & 255.255.255.252 & Hacia R-EIGRP-1\\
 R-CENTRAL & S0/1/1 & 10.0.0.22 & 255.255.255.252 & Hacia R-EIGRP-2\\
 R-EIGRP-1 & G0/0.10 & 172.16.0.129 & 255.255.255.192 & Gateway VLAN 10\\
 R-EIGRP-1 & G0/0.20 & 172.16.0.193 & 255.255.255.224 & Gateway VLAN 20\\
+R-EIGRP-1 & G0/0.30 & 172.16.0.225 & 255.255.255.240 & Gateway VLAN 30\\
 R-EIGRP-1 & S0/0/0 & 10.0.0.13 & 255.255.255.252 & Hacia R-EIGRP-2\\
 R-EIGRP-1 & S0/0/1 & 10.0.0.17 & 255.255.255.252 & Hacia central\\
 R-EIGRP-2 & G0/0 & 172.16.0.1 & 255.255.255.128 & Gateway usuarios\\
@@ -223,6 +239,7 @@ PC-O1-ADMIN & FastEthernet0 & 192.168.1.66 & /28; GW 192.168.1.65 & Prueba VLAN 
 PC-O2-USUARIOS & FastEthernet0 & 192.168.0.2 & /24; GW 192.168.0.1 & Prueba LAN\\
 PC-E1-USUARIOS & FastEthernet0 & 172.16.0.130 & /26; GW 172.16.0.129 & Prueba VLAN 10\\
 PC-E1-VOZ & FastEthernet0 & 172.16.0.194 & /27; GW 172.16.0.193 & Prueba VLAN 20\\
+PC-E1-ADMIN & FastEthernet0 & 172.16.0.226 & /28; GW 172.16.0.225 & Prueba VLAN 30\\
 PC-E2-USUARIOS & FastEthernet0 & 172.16.0.2 & /25; GW 172.16.0.1 & Prueba LAN\\
 \bottomrule
 \end{longtable}
@@ -243,7 +260,7 @@ Comparten los primeros siete bits del tercer octeto. Sumados a los 16 bits compl
 El rango del resumen es \texttt{192.168.0.0--192.168.1.255}; contiene las tres subredes.
 
 \subsection{Resumen del dominio EIGRP}
-Las subredes \texttt{172.16.0.0/25}, \texttt{172.16.0.128/26} y \texttt{172.16.0.192/27} comparten exactamente los primeros 24 bits:
+Las subredes \texttt{172.16.0.0/25}, \texttt{172.16.0.128/26}, \texttt{172.16.0.192/27} y \texttt{172.16.0.224/28} comparten exactamente los primeros 24 bits:
 \[
 \boxed{\texttt{172.16.0.0/24}}\qquad
 \text{mascara }\texttt{255.255.255.0}.
@@ -342,11 +359,13 @@ redistribute ospf 1 metric 1544 20000 255 1 1500
 \end{verbatim}
 Los valores representan ancho de banda, retardo, confiabilidad, carga y MTU.
 
-En sentido EIGRP hacia OSPF se eligio tipo E1:
+En sentido EIGRP hacia OSPF se eligio tipo E1. Debido a que el IOS emulado no acepta \texttt{summary-address} para rutas externas OSPF, se creo una ruta estatica de resumen hacia Null0 y se redistribuyo solamente esa ruta:
 \begin{verbatim}
-redistribute eigrp 100 metric-type 1 subnets
+ip route 172.16.0.0 255.255.255.0 Null0
+router ospf 1
+ redistribute static metric-type 1 subnets
 \end{verbatim}
-Una ruta E1 suma el costo externo y el costo interno hasta el ASBR. Una E2 conserva principalmente el costo externo; por eso E1 refleja mejor la topologia y permite que el costo hacia R-CENTRAL influya en la seleccion.
+R-CENTRAL conserva las rutas EIGRP especificas para reenviar trafico. Por coincidencia de prefijo mas largo, las rutas /25, /26, /27 y /28 ganan sobre la ruta /24 hacia Null0. OSPF recibe unicamente \texttt{172.16.0.0/24} como externa E1. Una ruta E1 suma el costo externo y el costo interno hasta el ASBR; una E2 conserva principalmente el costo externo. E1 refleja mejor la topologia y permite que el costo hacia R-CENTRAL influya en la seleccion.
 
 El resumen OSPF hacia EIGRP se aplico en ambas interfaces EIGRP del central:
 \begin{verbatim}
@@ -354,8 +373,8 @@ ip summary-address eigrp 100 192.168.0.0 255.255.254.0
 \end{verbatim}
 Los routers EIGRP reciben una sola ruta \texttt{192.168.0.0/23}.
 
-\begin{decision}[title={Limitacion comprobada del IOS emulado}]
-El IOS del router 1941 incluido en esta instalacion de Packet Tracer acepta la redistribucion mutua y el resumen de interfaz EIGRP, pero rechaza \texttt{route-map} y el comando OSPF \texttt{summary-address}. En un IOS completo se usarian listas de prefijos y route-maps para impedir la reentrada de prefijos y resumir \texttt{172.16.0.0/24} antes de OSPF. La topologia entregada conserva la redistribucion mutua real solicitada y documenta esta diferencia en vez de presentar como ejecutado un comando que el simulador no admite.
+\begin{decision}[title={Metodo de resumen compatible con Packet Tracer}]
+La ruta Null0 no reemplaza la conectividad EIGRP: funciona como objeto de resumen estable en el ASBR. La tabla del central mantiene las rutas especificas aprendidas por EIGRP, mientras que OSPF publica una sola externa E1. Este metodo evita inyectar por separado las VLAN EIGRP y cumple el objetivo funcional de sumarizacion aun cuando el IOS 1941 emulado rechaza el comando OSPF \texttt{summary-address}.
 \end{decision}
 
 \section{Lista de comprobacion manual}
@@ -368,6 +387,7 @@ El IOS del router 1941 incluido en esta instalacion de Packet Tracer acepta la r
 \item Verificar las metricas 2,170,112 y 6,510,336 en EIGRP.
 \item Comprobar $RD<FD$ y \texttt{variance 3}.
 \item Confirmar la ruta resumida \texttt{192.168.0.0/23} en ambos routers EIGRP.
+\item Confirmar una sola ruta OSPF E1 \texttt{172.16.0.0/24} en los routers OSPF.
 \item Ejecutar pings y trazas entre todos los segmentos.
 \end{enumerate}
 
