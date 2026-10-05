@@ -29,9 +29,6 @@
 | Sumarización | ✅ Una ruta por dominio: `192.168.0.0/23` y `172.16.0.0/24` |
 | Estado técnico | ✅ Implementación y documentación verificadas |
 
-> [!IMPORTANT]
-> La implementación de Packet Tracer y el PDF 2 están completos. El PDF 1 contiene todo el procedimiento explícito solicitado como base para copiarlo a mano, tal como se indicó para esta actividad.
-
 ## Topología implementada
 
 <p align="center">
@@ -145,58 +142,3 @@ OSPF → EIGRP
 EIGRP → OSPF
 172.16.0.1 → 10.0.0.22 → 10.0.0.5 → 192.168.1.66
 ```
-
-## Auditoría de cumplimiento
-
-| Requisito del PDF | Estado | Evidencia / observación |
-|:--|:--:|:--|
-| 5 routers y 6 enlaces seriales fijos | ✅ | Topología viva: 5 routers y las 6 relaciones exigidas |
-| VLSM sin solapamientos | ✅ | Prefijos `/24`, `/25`, `/26`, `/27`, `/28` y seis `/30` |
-| VLANs y enrutamiento inter-VLAN | ✅ | Subinterfaces 802.1Q y troncales en los dos sitios indicados |
-| OSPF área 0 e interfaces pasivas | ✅ | Tres routers OSPF; solo interfaces seriales no pasivas |
-| Balanceo OSPF de costo igual | ✅ | Dos next hops con métrica 21 |
-| EIGRP AS 100 e interfaces pasivas | ✅ | Tres routers EIGRP y `passive-interface default` |
-| Balanceo EIGRP cercano a 75/25 | ✅ | Successor, feasible successor y `variance 3` |
-| Intercambio bidireccional únicamente en R-CENTRAL | ✅ | Métrica semilla hacia EIGRP y resumen estático redistribuido como E1 hacia OSPF |
-| Sumarización en ambas direcciones | ✅ | `/23` OSPF → EIGRP y `/24` EIGRP → OSPF verificados en tablas reales |
-| Evidencia `show ip route` de los 5 routers | ✅ | Incluida en PDF 2 como salida textual |
-| Evidencia OSPF pedida como `show ip ospf interface` | ✅ | PDF 2 incluye el comando solicitado y `show ip route` para demostrar los dos next hops |
-| Evidencia EIGRP de topología | ✅ | Incluye successor, feasible successor, FD, RD y justificación de `variance` |
-| PDF 1 para trabajo escrito a mano | ✅ Base lista | La versión LaTeX desarrolla cada potencia, máscara, rango y broadcast para transcribir a papel |
-| Capturas de ping y `tracert` | ✅ | PDF 2 incluye imágenes generadas desde la salida real de la consola viva de Packet Tracer |
-
-> [!NOTE]
-> El enunciado contiene una inconsistencia: la tabla de roles exige **3 VLANs** en R-EIGRP-1, mientras que la tabla detallada solo define dos. Se tomó la condición más restrictiva y se implementó VLAN 30 de administración/servidores con 10 hosts en `172.16.0.224/28`.
-
-## Entregables
-
-| Archivo | Contenido |
-|:--|:--|
-| [PDF1_VLSM_y_Conceptos.pdf](output/pdf/PDF1_VLSM_y_Conceptos.pdf) | Cálculos explícitos de VLSM, tablas y conceptos para transcripción manual |
-| [PDF2_Evidencias_Packet_Tracer.pdf](output/pdf/PDF2_Evidencias_Packet_Tracer.pdf) | Tablas de enrutamiento, ECMP, DUAL, redistribución, pings y trazas |
-| [Lab3_Algoritmos_Enrutamiento_Grupo1.pkt](packet-tracer/Lab3_Algoritmos_Enrutamiento_Grupo1.pkt) | Topología funcional de Cisco Packet Tracer |
-| [PDF1_VLSM_y_Conceptos.tex](latex/PDF1_VLSM_y_Conceptos.tex) | Fuente editable del PDF 1 |
-| [PDF2_Evidencias_Packet_Tracer.tex](latex/PDF2_Evidencias_Packet_Tracer.tex) | Fuente editable del PDF 2 |
-
-## Compilación de los documentos
-
-Desde la carpeta `latex`:
-
-```powershell
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF1_VLSM_y_Conceptos.tex
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
-xelatex -interaction=nonstopmode -halt-on-error -output-directory=../output/pdf PDF2_Evidencias_Packet_Tracer.tex
-```
-
-La segunda compilación actualiza índices, referencias y numeración.
-
-## Antes de entregar
-
-1. Copiar a mano el contenido de [PDF 1](output/pdf/PDF1_VLSM_y_Conceptos.pdf), mostrando cada potencia de dos, máscara, rango y broadcast.
-2. Abrir el `.pkt`, esperar la convergencia y confirmar que todos los enlaces estén verdes.
-3. Empaquetar los dos PDF y el archivo de Packet Tracer según indique el docente.
-
----
-
-<p align="center"><sub>Auditoría técnica realizada contra “Lab3 - Algoritmos de Enrutamiento.pdf” y verificada sobre la topología viva en Packet Tracer.</sub></p>
