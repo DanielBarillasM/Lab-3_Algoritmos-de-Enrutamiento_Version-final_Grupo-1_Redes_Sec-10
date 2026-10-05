@@ -1,0 +1,384 @@
+﻿\documentclass[11pt]{article}
+\input{preambulo.tex}
+
+\begin{document}
+\portadalab{PDF 1: desarrollo manual de VLSM y conceptos}{5 de octubre de 2026}
+\tableofcontents
+\newpage
+
+\section{Alcance y criterio usado}
+
+Este documento funciona como base para transcribir a mano el procedimiento. No se limita a presentar resultados: en cada subred se muestra la cantidad de bits de host, el prefijo, la mascara, el tamano del bloque, las direcciones utilizables, el broadcast y el desperdicio.
+
+El documento principal del laboratorio es la fuente de requisitos. Los documentos de direccionamiento, enrutamiento dinamico y configuracion OSPF se utilizaron como apoyo teorico. Por indicacion adicional del estudiante, los pasos se presentan con sustituciones numericas y comprobaciones explicitas.
+
+\begin{decision}[title={Aclaracion sobre R-EIGRP-1}]
+La tabla general del enunciado indica ``3 VLANs'', pero la tabla detallada solo define VLAN 10 (60 usuarios) y VLAN 20 (30 dispositivos de voz). Se implementaron esas dos VLAN porque son las unicas que tienen identificador, funcion y cantidad de hosts. Se reserva espacio dentro de \texttt{172.16.0.0/24} para una eventual tercera VLAN si el docente la especifica.
+\end{decision}
+
+\section{Bloques base y estrategia VLSM}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{l l Y}
+\toprule
+Dominio & Bloque base & Motivo\\
+\midrule
+LAN/VLAN OSPF & \texttt{192.168.0.0/20} & Direccion privada de clase C solicitada, con 4096 direcciones totales.\\
+LAN/VLAN EIGRP & \texttt{172.16.0.0/20} & Direccion privada de clase B solicitada, con 4096 direcciones totales.\\
+Enlaces seriales & \texttt{10.0.0.0/24} & Direccion privada de clase A solicitada; se divide en seis subredes /30.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Para una red con $H$ hosts se busca el menor numero entero $h$ que cumpla
+\[
+2^h-2\ge H.
+\]
+Se restan dos direcciones porque una identifica la red y otra es el broadcast. El prefijo se calcula como
+\[
+p=32-h.
+\]
+El tamano o salto del bloque es $2^h$ direcciones. Las solicitudes se asignan de mayor a menor para evitar fragmentacion.
+
+\section{Desarrollo VLSM del dominio OSPF}
+
+\subsection{LAN de R-OSPF-2: 200 usuarios}
+\begin{calculo}
+\[
+2^7-2=126<200,\qquad 2^8-2=254\ge 200.
+\]
+Se necesitan $h=8$ bits de host. Por tanto,
+\[
+p=32-8=24.
+\]
+La mascara /24 es \texttt{255.255.255.0}. El bloque contiene $2^8=256$ direcciones y avanza de 256 en el ultimo octeto.
+
+Primera subred disponible: \texttt{192.168.0.0/24}.
+\begin{align*}
+\text{Red} &= \texttt{192.168.0.0},\\
+\text{Primer host} &= \texttt{192.168.0.1},\\
+\text{Ultimo host} &= \texttt{192.168.0.254},\\
+\text{Broadcast} &= \texttt{192.168.0.255},\\
+\text{Desperdicio} &= 254-200=54\text{ hosts}.
+\end{align*}
+\end{calculo}
+
+\subsection{VLAN 10 de R-OSPF-1: 50 usuarios}
+\begin{calculo}
+\[
+2^5-2=30<50,\qquad 2^6-2=62\ge 50.
+\]
+Se necesitan $h=6$ bits y $p=32-6=26$. La mascara es
+\[
+11111111.11111111.11111111.11000000=\texttt{255.255.255.192}.
+\]
+El salto es $256-192=64$. Despues del /24 anterior, la siguiente red libre es \texttt{192.168.1.0/26}.
+\begin{align*}
+\text{Red} &= \texttt{192.168.1.0}, & \text{Primer host} &= \texttt{192.168.1.1},\\
+\text{Ultimo host} &= \texttt{192.168.1.62}, & \text{Broadcast} &= \texttt{192.168.1.63},\\
+\text{Desperdicio} &= 62-50=12\text{ hosts}.&&
+\end{align*}
+\end{calculo}
+
+\subsection{VLAN 30 de R-OSPF-1: 10 hosts administrativos/servidores}
+\begin{calculo}
+\[
+2^3-2=6<10,\qquad 2^4-2=14\ge 10.
+\]
+Se necesitan $h=4$ bits, entonces $p=28$. La mascara es \texttt{255.255.255.240} y el salto es $256-240=16$. La red comienza inmediatamente despues del broadcast anterior:
+\begin{align*}
+\text{Red} &= \texttt{192.168.1.64/28},\\
+\text{Primer host} &= \texttt{192.168.1.65},\\
+\text{Ultimo host} &= \texttt{192.168.1.78},\\
+\text{Broadcast} &= \texttt{192.168.1.79},\\
+\text{Desperdicio} &= 14-10=4\text{ hosts}.
+\end{align*}
+\end{calculo}
+
+\subsection{Resumen del VLSM OSPF}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Y C{1.25cm} C{1.35cm} l l l C{1.25cm}}
+\toprule
+Segmento & Hosts & Prefijo & Red & Primer host & Ultimo host / broadcast & Libres\\
+\midrule
+R-OSPF-2 usuarios & 200 & /24 & 192.168.0.0 & 192.168.0.1 & .254 / .255 & 54\\
+R-OSPF-1 VLAN 10 & 50 & /26 & 192.168.1.0 & 192.168.1.1 & .62 / .63 & 12\\
+R-OSPF-1 VLAN 30 & 10 & /28 & 192.168.1.64 & 192.168.1.65 & .78 / .79 & 4\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Desarrollo VLSM del dominio EIGRP}
+
+\subsection{LAN de R-EIGRP-2: 100 usuarios}
+\begin{calculo}
+\[
+2^6-2=62<100,\qquad 2^7-2=126\ge100.
+\]
+$h=7$, $p=25$, mascara \texttt{255.255.255.128} y salto 128.
+\begin{align*}
+\text{Red} &= \texttt{172.16.0.0/25}, & \text{Primer host} &= \texttt{172.16.0.1},\\
+\text{Ultimo host} &= \texttt{172.16.0.126}, & \text{Broadcast} &= \texttt{172.16.0.127},\\
+\text{Desperdicio} &=126-100=26.&&
+\end{align*}
+\end{calculo}
+
+\subsection{VLAN 10 de R-EIGRP-1: 60 usuarios}
+\begin{calculo}
+\[
+2^5-2=30<60,\qquad 2^6-2=62\ge60.
+\]
+$h=6$, $p=26$, mascara \texttt{255.255.255.192} y salto 64. La siguiente frontera valida despues de .127 es .128.
+\begin{align*}
+\text{Red} &= \texttt{172.16.0.128/26}, & \text{Primer host} &= \texttt{172.16.0.129},\\
+\text{Ultimo host} &= \texttt{172.16.0.190}, & \text{Broadcast} &= \texttt{172.16.0.191},\\
+\text{Desperdicio} &=62-60=2.&&
+\end{align*}
+\end{calculo}
+
+\subsection{VLAN 20 de voz: 30 dispositivos}
+\begin{calculo}
+\[
+2^5-2=30\ge30.
+\]
+$h=5$, $p=27$, mascara \texttt{255.255.255.224} y salto $256-224=32$.
+\begin{align*}
+\text{Red} &= \texttt{172.16.0.192/27}, & \text{Primer host} &= \texttt{172.16.0.193},\\
+\text{Ultimo host} &= \texttt{172.16.0.222}, & \text{Broadcast} &= \texttt{172.16.0.223},\\
+\text{Desperdicio} &=30-30=0.&&
+\end{align*}
+\end{calculo}
+
+\subsection{Resumen del VLSM EIGRP}
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{Y C{1.25cm} C{1.35cm} l l l C{1.25cm}}
+\toprule
+Segmento & Hosts & Prefijo & Red & Primer host & Ultimo host / broadcast & Libres\\
+\midrule
+R-EIGRP-2 usuarios & 100 & /25 & 172.16.0.0 & 172.16.0.1 & .126 / .127 & 26\\
+R-EIGRP-1 VLAN 10 & 60 & /26 & 172.16.0.128 & 172.16.0.129 & .190 / .191 & 2\\
+R-EIGRP-1 VLAN 20 & 30 & /27 & 172.16.0.192 & 172.16.0.193 & .222 / .223 & 0\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+El intervalo \texttt{172.16.0.224--172.16.0.255} queda libre. Dentro de este se puede reservar, por ejemplo, \texttt{172.16.0.224/28} para una tercera VLAN si el docente aclara la contradiccion del enunciado.
+
+\section{Enlaces punto a punto}
+
+Cada enlace requiere exactamente dos IP utilizables:
+\[
+2^1-2=0<2,\qquad 2^2-2=2\ge2.
+\]
+Por tanto, $h=2$, $p=30$, mascara \texttt{255.255.255.252}, bloque de cuatro direcciones y salto 4.
+
+\begin{center}
+\small
+\begin{longtable}{p{4.0cm}p{2.7cm}p{2.7cm}p{2.7cm}}
+\toprule
+Enlace & Red /30 & Extremo A & Extremo B\\
+\midrule
+R-OSPF-1 -- R-OSPF-2 & 10.0.0.0 & 10.0.0.1 & 10.0.0.2\\
+R-OSPF-1 -- R-CENTRAL & 10.0.0.4 & 10.0.0.5 & 10.0.0.6\\
+R-OSPF-2 -- R-CENTRAL & 10.0.0.8 & 10.0.0.9 & 10.0.0.10\\
+R-EIGRP-1 -- R-EIGRP-2 & 10.0.0.12 & 10.0.0.13 & 10.0.0.14\\
+R-EIGRP-1 -- R-CENTRAL & 10.0.0.16 & 10.0.0.17 & 10.0.0.18\\
+R-EIGRP-2 -- R-CENTRAL & 10.0.0.20 & 10.0.0.21 & 10.0.0.22\\
+\bottomrule
+\end{longtable}
+\end{center}
+
+Ejemplo para \texttt{10.0.0.16/30}: red .16, hosts .17 y .18, broadcast .19. El siguiente bloque comienza en .20.
+
+\section{Tabla completa de direccionamiento}
+\small
+\begin{longtable}{p{2.6cm}p{3.1cm}p{2.8cm}p{2.8cm}p{2.7cm}}
+\toprule
+Dispositivo & Interfaz & Direccion & Mascara & Proposito\\
+\midrule
+\endhead
+R-OSPF-1 & G0/0.10 & 192.168.1.1 & 255.255.255.192 & Gateway VLAN 10\\
+R-OSPF-1 & G0/0.30 & 192.168.1.65 & 255.255.255.240 & Gateway VLAN 30\\
+R-OSPF-1 & S0/0/0 & 10.0.0.1 & 255.255.255.252 & Hacia R-OSPF-2\\
+R-OSPF-1 & S0/0/1 & 10.0.0.5 & 255.255.255.252 & Hacia central\\
+R-OSPF-2 & G0/0 & 192.168.0.1 & 255.255.255.0 & Gateway usuarios\\
+R-OSPF-2 & S0/0/0 & 10.0.0.2 & 255.255.255.252 & Hacia R-OSPF-1\\
+R-OSPF-2 & S0/0/1 & 10.0.0.9 & 255.255.255.252 & Hacia central\\
+R-CENTRAL & S0/0/0 & 10.0.0.6 & 255.255.255.252 & Hacia R-OSPF-1\\
+R-CENTRAL & S0/0/1 & 10.0.0.10 & 255.255.255.252 & Hacia R-OSPF-2\\
+R-CENTRAL & S0/1/0 & 10.0.0.18 & 255.255.255.252 & Hacia R-EIGRP-1\\
+R-CENTRAL & S0/1/1 & 10.0.0.22 & 255.255.255.252 & Hacia R-EIGRP-2\\
+R-EIGRP-1 & G0/0.10 & 172.16.0.129 & 255.255.255.192 & Gateway VLAN 10\\
+R-EIGRP-1 & G0/0.20 & 172.16.0.193 & 255.255.255.224 & Gateway VLAN 20\\
+R-EIGRP-1 & S0/0/0 & 10.0.0.13 & 255.255.255.252 & Hacia R-EIGRP-2\\
+R-EIGRP-1 & S0/0/1 & 10.0.0.17 & 255.255.255.252 & Hacia central\\
+R-EIGRP-2 & G0/0 & 172.16.0.1 & 255.255.255.128 & Gateway usuarios\\
+R-EIGRP-2 & S0/0/0 & 10.0.0.14 & 255.255.255.252 & Hacia R-EIGRP-1\\
+R-EIGRP-2 & S0/0/1 & 10.0.0.21 & 255.255.255.252 & Hacia central\\
+\midrule
+PC-O1-USUARIOS & FastEthernet0 & 192.168.1.2 & /26; GW 192.168.1.1 & Prueba VLAN 10\\
+PC-O1-ADMIN & FastEthernet0 & 192.168.1.66 & /28; GW 192.168.1.65 & Prueba VLAN 30\\
+PC-O2-USUARIOS & FastEthernet0 & 192.168.0.2 & /24; GW 192.168.0.1 & Prueba LAN\\
+PC-E1-USUARIOS & FastEthernet0 & 172.16.0.130 & /26; GW 172.16.0.129 & Prueba VLAN 10\\
+PC-E1-VOZ & FastEthernet0 & 172.16.0.194 & /27; GW 172.16.0.193 & Prueba VLAN 20\\
+PC-E2-USUARIOS & FastEthernet0 & 172.16.0.2 & /25; GW 172.16.0.1 & Prueba LAN\\
+\bottomrule
+\end{longtable}
+\normalsize
+
+\section{Calculo de las rutas resumidas}
+
+\subsection{Resumen del dominio OSPF}
+Los tres prefijos LAN ocupan desde \texttt{192.168.0.0} hasta \texttt{192.168.1.79}. Los terceros octetos relevantes son
+\[
+0=\texttt{00000000}_2,\qquad 1=\texttt{00000001}_2.
+\]
+Comparten los primeros siete bits del tercer octeto. Sumados a los 16 bits completos de \texttt{192.168}, existen $16+7=23$ bits comunes:
+\[
+\boxed{\texttt{192.168.0.0/23}}\qquad
+\text{mascara }\texttt{255.255.254.0}.
+\]
+El rango del resumen es \texttt{192.168.0.0--192.168.1.255}; contiene las tres subredes.
+
+\subsection{Resumen del dominio EIGRP}
+Las subredes \texttt{172.16.0.0/25}, \texttt{172.16.0.128/26} y \texttt{172.16.0.192/27} comparten exactamente los primeros 24 bits:
+\[
+\boxed{\texttt{172.16.0.0/24}}\qquad
+\text{mascara }\texttt{255.255.255.0}.
+\]
+
+\section{VLAN, enlace troncal y router-on-a-stick}
+
+Una VLAN crea un dominio de broadcast logico. Los puertos de las computadoras son de acceso y transportan una sola VLAN. El enlace switch--router es troncal 802.1Q y transporta varias VLAN etiquetadas. El router crea una subinterfaz por VLAN; cada subinterfaz es el gateway de su red.
+
+Ejemplo de R-OSPF-1:
+\begin{verbatim}
+interface GigabitEthernet0/0.10
+ encapsulation dot1Q 10
+ ip address 192.168.1.1 255.255.255.192
+interface GigabitEthernet0/0.30
+ encapsulation dot1Q 30
+ ip address 192.168.1.65 255.255.255.240
+\end{verbatim}
+
+\section{OSPF y balanceo de costo igual}
+
+OSPF es un protocolo de estado de enlace. Cada router forma adyacencias, construye una base de datos de estado de enlace y ejecuta SPF. Se utilizo un solo proceso OSPF 1 y area 0. Las interfaces hacia usuarios son pasivas: sus redes se anuncian, pero no se envian saludos OSPF a los hosts.
+
+Para obligar dos caminos de costo igual entre los routers OSPF se asignaron los siguientes costos:
+\begin{itemize}
+\item Enlace directo R-OSPF-1--R-OSPF-2: costo 20.
+\item Cada enlace de acceso a R-CENTRAL: costo 10.
+\item Interfaz LAN de destino: costo 1.
+\end{itemize}
+
+Desde R-OSPF-1 hacia \texttt{192.168.0.0/24}:
+\begin{calculo}
+\[
+C_{directo}=20+1=21.
+\]
+\[
+C_{central}=10+10+1=21.
+\]
+Como $C_{directo}=C_{central}$, ambos siguientes saltos se instalan en la tabla: \texttt{10.0.0.2} y \texttt{10.0.0.6}. Esta es una comprobacion ECMP real, no solamente una afirmacion teorica.
+\end{calculo}
+
+\section{EIGRP, DUAL y balanceo desigual 75/25}
+
+EIGRP usa DUAL. El sucesor es el mejor siguiente salto. Un vecino es sucesor factible cuando su distancia reportada (RD) es estrictamente menor que la distancia factible del sucesor (FD):
+\[
+RD_{alterno}<FD_{sucesor}.
+\]
+Con los valores $K_1=K_3=1$ y los demas $K=0$, la metrica clasica es
+\[
+M=256\left(\left\lfloor\frac{10^7}{BW_{min}}\right\rfloor+\sum\frac{delay_{\mu s}}{10}\right).
+\]
+
+Para R-EIGRP-1 hacia \texttt{172.16.0.0/25}, $BW_{min}=1544$ kbit/s:
+\[
+\left\lfloor\frac{10^7}{1544}\right\rfloor=6476.
+\]
+
+\subsection{Camino directo: sucesor}
+El retardo total observado es $20010\ \mu s$, equivalente a 2001 unidades de decenas de microsegundo:
+\begin{calculo}
+\[
+M_d=256(6476+2001)=256(8477)=\boxed{2\,170\,112}.
+\]
+\end{calculo}
+
+\subsection{Camino por R-CENTRAL: candidato factible}
+Se configuro \texttt{delay 18854} en la salida del router de acceso hacia el central y \texttt{delay 100} en la salida del central hacia el router remoto. El retardo total resulta $189550\ \mu s=18955$ unidades:
+\begin{calculo}
+\[
+M_a=256(6476+18955)=256(25431)=\boxed{6\,510\,336}.
+\]
+La distancia reportada real del central fue
+\[
+RD_a=1\,683\,712<FD_d=2\,170\,112,
+\]
+por lo que se cumple la condicion de factibilidad y no existe riesgo de bucle segun DUAL.
+\end{calculo}
+
+\subsection{Variance y proporcion de trafico}
+\[
+\frac{M_a}{M_d}=\frac{6\,510\,336}{2\,170\,112}=3.
+\]
+Se necesita \texttt{variance 3}, porque $M_a\le3M_d$. Con reparto inversamente proporcional a la metrica:
+\[
+P_d=\frac{M_a}{M_d+M_a}=\frac{3}{1+3}=75\%,
+\qquad
+P_a=\frac{M_d}{M_d+M_a}=\frac{1}{4}=25\%.
+\]
+Los comandos relevantes son \texttt{variance 3}, \texttt{maximum-paths 2} y \texttt{traffic-share balanced}.
+
+\section{Redistribucion y seleccion de OSPF E1}
+
+R-CENTRAL ejecuta OSPF 1 y EIGRP 100; es el unico punto de redistribucion. Al llevar rutas OSPF hacia EIGRP es obligatoria una metrica semilla porque las rutas externas no poseen los cinco componentes de la metrica EIGRP:
+\begin{verbatim}
+redistribute ospf 1 metric 1544 20000 255 1 1500
+\end{verbatim}
+Los valores representan ancho de banda, retardo, confiabilidad, carga y MTU.
+
+En sentido EIGRP hacia OSPF se eligio tipo E1:
+\begin{verbatim}
+redistribute eigrp 100 metric-type 1 subnets
+\end{verbatim}
+Una ruta E1 suma el costo externo y el costo interno hasta el ASBR. Una E2 conserva principalmente el costo externo; por eso E1 refleja mejor la topologia y permite que el costo hacia R-CENTRAL influya en la seleccion.
+
+El resumen OSPF hacia EIGRP se aplico en ambas interfaces EIGRP del central:
+\begin{verbatim}
+ip summary-address eigrp 100 192.168.0.0 255.255.254.0
+\end{verbatim}
+Los routers EIGRP reciben una sola ruta \texttt{192.168.0.0/23}.
+
+\begin{decision}[title={Limitacion comprobada del IOS emulado}]
+El IOS del router 1941 incluido en esta instalacion de Packet Tracer acepta la redistribucion mutua y el resumen de interfaz EIGRP, pero rechaza \texttt{route-map} y el comando OSPF \texttt{summary-address}. En un IOS completo se usarian listas de prefijos y route-maps para impedir la reentrada de prefijos y resumir \texttt{172.16.0.0/24} antes de OSPF. La topologia entregada conserva la redistribucion mutua real solicitada y documenta esta diferencia en vez de presentar como ejecutado un comando que el simulador no admite.
+\end{decision}
+
+\section{Lista de comprobacion manual}
+\begin{enumerate}
+\item Revisar que cada interfaz tenga la IP y mascara de la tabla.
+\item Verificar que los enlaces seriales esten \texttt{up/up} y que solo el lado DCE tenga reloj.
+\item Confirmar dos vecinos OSPF en cada router del triangulo.
+\item Confirmar dos vecinos EIGRP en cada router del triangulo.
+\item Verificar dos siguientes saltos de costo 21 en OSPF.
+\item Verificar las metricas 2,170,112 y 6,510,336 en EIGRP.
+\item Comprobar $RD<FD$ y \texttt{variance 3}.
+\item Confirmar la ruta resumida \texttt{192.168.0.0/23} en ambos routers EIGRP.
+\item Ejecutar pings y trazas entre todos los segmentos.
+\end{enumerate}
+
+\section{Fuentes de apoyo del curso}
+\begin{itemize}
+\item \emph{Lab3 - Algoritmos de Enrutamiento}: requisitos y rubrica del laboratorio.
+\item \emph{Clase Direccionamiento IP - Subnetting UVG}: formula de hosts, CIDR y asignacion VLSM.
+\item \emph{Enrutamiento Dinamico UVG}: OSPF, EIGRP, DUAL, metricas y distancias administrativas.
+\item \emph{Guia de configuracion OSPF}: area 0, interfaces pasivas, enlaces seriales y comandos de verificacion.
+\end{itemize}
+
+\end{document}
+
+
