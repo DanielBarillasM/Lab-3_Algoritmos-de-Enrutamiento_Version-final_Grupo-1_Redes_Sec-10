@@ -15,20 +15,6 @@
 
 ---
 
-## Estado del laboratorio
-
-| Indicador | Resultado verificado |
-|:--|:--|
-| Estado de la topología | ✅ Saludable: 0 enlaces caídos y 0 IP duplicadas |
-| Equipos funcionales | ✅ 5 routers, 4 switches y 7 equipos finales |
-| Enlaces seriales | ✅ 6 subredes punto a punto `/30` |
-| Conectividad estabilizada | ✅ 9 de 9 pruebas representativas, 4/4 respuestas y 0% de pérdida |
-| Balanceo OSPF | ✅ ECMP: dos rutas de métrica 21 y reparto 1:1 |
-| Balanceo EIGRP | ✅ `variance 3`: relación métrica 3:1, equivalente a 75/25 |
-| Intercambio entre protocolos | ✅ Controlado en R-CENTRAL, con métrica semilla hacia EIGRP y resumen OSPF E1 |
-| Sumarización | ✅ Una ruta por dominio: `192.168.0.0/23` y `172.16.0.0/24` |
-| Estado técnico | ✅ Implementación y documentación verificadas |
-
 ## Topología implementada
 
 <p align="center">
