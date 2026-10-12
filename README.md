@@ -15,13 +15,44 @@
 
 ---
 
+## Estructura del repositorio
+
+```text
+Lab-3_Algoritmos-de-Enrutamiento_Version-final_Grupo-1_Redes_Sec-10/
+├── Informes/
+│   └── pdf/
+│       ├── PDF1_VLSM_y_Conceptos.pdf
+│       └── PDF2_Evidencias_Packet_Tracer.pdf
+├── latex/
+│   ├── figuras/
+│   │   ├── evidencia_ping.png
+│   │   ├── evidencia_tracert.png
+│   │   └── topologia_lab3.png
+│   ├── PDF1_VLSM_y_Conceptos.tex
+│   ├── PDF2_Evidencias_Packet_Tracer.tex
+│   └── preambulo.tex
+├── packet-tracer/
+│   └── Lab3_Algoritmos_Enrutamiento_Grupo1.pkt
+├── .gitignore
+├── LICENSE
+└── README.md
+```
+
+## Archivos a revisar (por parte del auxiliar o del docente correspondiente)
+
+| Archivo | Contenido |
+|:--|:--|
+| [PDF 1](Informes/pdf/PDF1_VLSM_y_Conceptos.pdf) | Cálculos VLSM, direccionamiento, sumarización y conceptos |
+| [PDF 2](Informes/pdf/PDF2_Evidencias_Packet_Tracer.pdf) | Tablas de los 5 routers, ECMP, DUAL, redistribución, ping y `tracert` |
+| [Proyecto Packet Tracer](packet-tracer/Lab3_Algoritmos_Enrutamiento_Grupo1.pkt) | Topología funcional y configurada |
+| [Fuente PDF 1](latex/PDF1_VLSM_y_Conceptos.tex) | Documento LaTeX editable / Referencia |
+| [Fuente PDF 2](latex/PDF2_Evidencias_Packet_Tracer.tex) | Documento LaTeX editable |
+
 ## Topología implementada
 
 <p align="center">
   <img src="latex/figuras/topologia_lab3.png" alt="Topología del Laboratorio 3" width="900">
 </p>
-
-La red conserva los cinco routers y las seis conexiones seriales obligatorias. R-CENTRAL participa simultáneamente en OSPF área 0 y EIGRP AS 100, y es el único punto de redistribución.
 
 ```text
 R-OSPF-1 -------- R-OSPF-2
@@ -33,23 +64,23 @@ R-OSPF-1 -------- R-OSPF-2
 R-EIGRP-1 -------- R-EIGRP-2
 ```
 
-Los sitios R-OSPF-1 y R-EIGRP-1 utilizan router-on-a-stick; R-OSPF-2 y R-EIGRP-2 poseen una LAN sin VLAN adicional.
+R-CENTRAL participa en OSPF área 0 y EIGRP AS 100 y es el único punto de intercambio entre dominios. R-OSPF-1 y R-EIGRP-1 implementan router-on-a-stick.
 
 ## Plan de direccionamiento
 
 ### LAN y VLAN
 
-| Dominio | Sitio / segmento | Hosts solicitados | Red asignada | Gateway | Capacidad útil |
+| Dominio | Segmento | Hosts | Red | Gateway | Capacidad útil |
 |:--|:--|--:|:--|:--|--:|
 | OSPF | R-OSPF-2 · usuarios | 200 | `192.168.0.0/24` | `192.168.0.1` | 254 |
-| OSPF | R-OSPF-1 · VLAN 10 usuarios | 50 | `192.168.1.0/26` | `192.168.1.1` | 62 |
-| OSPF | R-OSPF-1 · VLAN 30 administración | 10 | `192.168.1.64/28` | `192.168.1.65` | 14 |
+| OSPF | R-OSPF-1 · VLAN 10 | 50 | `192.168.1.0/26` | `192.168.1.1` | 62 |
+| OSPF | R-OSPF-1 · VLAN 30 | 10 | `192.168.1.64/28` | `192.168.1.65` | 14 |
 | EIGRP | R-EIGRP-2 · usuarios | 100 | `172.16.0.0/25` | `172.16.0.1` | 126 |
-| EIGRP | R-EIGRP-1 · VLAN 10 usuarios | 60 | `172.16.0.128/26` | `172.16.0.129` | 62 |
-| EIGRP | R-EIGRP-1 · VLAN 20 voz | 30 | `172.16.0.192/27` | `172.16.0.193` | 30 |
-| EIGRP | R-EIGRP-1 · VLAN 30 administración | 10 | `172.16.0.224/28` | `172.16.0.225` | 14 |
+| EIGRP | R-EIGRP-1 · VLAN 10 | 60 | `172.16.0.128/26` | `172.16.0.129` | 62 |
+| EIGRP | R-EIGRP-1 · VLAN 20 | 30 | `172.16.0.192/27` | `172.16.0.193` | 30 |
+| EIGRP | R-EIGRP-1 · VLAN 30 | 10 | `172.16.0.224/28` | `172.16.0.225` | 14 |
 
-### Enlaces punto a punto
+### Enlaces seriales
 
 | Enlace | Subred | Extremo A | Extremo B |
 |:--|:--|:--|:--|
@@ -60,71 +91,10 @@ Los sitios R-OSPF-1 y R-EIGRP-1 utilizan router-on-a-stick; R-OSPF-2 y R-EIGRP-2
 | R-EIGRP-1 ↔ R-CENTRAL | `10.0.0.16/30` | `10.0.0.17` | `10.0.0.18` |
 | R-EIGRP-2 ↔ R-CENTRAL | `10.0.0.20/30` | `10.0.0.21` | `10.0.0.22` |
 
-No existen solapamientos. Los bloques base respetan lo solicitado: `192.168.0.0/20` para el lado OSPF, `172.16.0.0/20` para el lado EIGRP y `10.0.0.0/24` para enlaces entre routers.
+## Decisiones técnicas
 
-## Resultados de enrutamiento
-
-### OSPF área 0: balanceo de costo igual
-
-En R-OSPF-1, el enlace directo hacia R-OSPF-2 tiene costo 20. El camino alternativo por R-CENTRAL suma 10 + 10 = 20. Al agregar el costo de la interfaz de destino, ambas entradas aparecen con métrica 21:
-
-| Destino | Siguiente salto | Interfaz | Métrica | Reparto |
-|:--|:--|:--|:--:|:--:|
-| `192.168.0.0/24` | `10.0.0.2` | `Serial0/0/0` | 21 | 1 |
-| `192.168.0.0/24` | `10.0.0.6` | `Serial0/0/1` | 21 | 1 |
-
-Resultado: **ECMP 50/50** entre el enlace directo y el camino por R-CENTRAL.
-
-### EIGRP AS 100: balanceo desigual 75/25
-
-Para `172.16.0.0/25` desde R-EIGRP-1 se verificaron estas métricas:
-
-| Camino | Métrica total | Distancia reportada | Función |
-|:--|--:|--:|:--|
-| Directo a R-EIGRP-2 | 2,170,112 | 2,816 | Successor |
-| Vía R-CENTRAL | 6,510,336 | 1,683,712 | Feasible successor |
-
-La condición de factibilidad se cumple porque `1,683,712 < 2,170,112`. Además:
-
-```text
-6,510,336 / 2,170,112 = 3
-```
-
-Con `variance 3`, EIGRP instala ambos caminos. Como el reparto es inversamente proporcional a la métrica, la relación es 3:1: aproximadamente **75% por la ruta principal y 25% por la secundaria**.
-
-### Redistribución y rutas de resumen
-
-| Dirección | Implementación | Estado |
-|:--|:--|:--:|
-| OSPF → EIGRP | `redistribute ospf 1 metric 1544 20000 255 1 1500` | ✅ |
-| Resumen OSPF hacia EIGRP | `192.168.0.0/23` en las interfaces EIGRP de R-CENTRAL | ✅ |
-| EIGRP → OSPF | Resumen estático `172.16.0.0/24` a Null0 + `redistribute static metric-type 1 subnets` | ✅ |
-| Resumen EIGRP en OSPF | `O E1 172.16.0.0/24`, una sola ruta | ✅ |
-
-Se eligió OSPF **E1** para que la métrica externa incluya también el costo interno hasta R-CENTRAL. Como el IOS 1941 emulado no admite `summary-address` para externas OSPF, R-CENTRAL conserva las rutas EIGRP específicas y crea `172.16.0.0/24` hacia Null0 para redistribuir una sola ruta. Las rutas específicas ganan por coincidencia de prefijo más largo, por lo que el resumen no provoca pérdida de tráfico.
-
-## Pruebas de conectividad
-
-La batería final, después de resolución ARP, produjo los siguientes resultados reales desde el MCP de Packet Tracer:
-
-| Origen | Destino | Resultado |
-|:--|:--|:--:|
-| PC-O1-USUARIOS | `172.16.0.2` | ✅ 4/4 · 0% pérdida |
-| PC-O1-USUARIOS | `172.16.0.226` | ✅ 4/4 · 0% pérdida |
-| PC-O1-ADMIN | `172.16.0.194` | ✅ 4/4 · 0% pérdida |
-| PC-O2-USUARIOS | `172.16.0.130` | ✅ 4/4 · 0% pérdida |
-| PC-O2-USUARIOS | `172.16.0.226` | ✅ 4/4 · 0% pérdida |
-| PC-E1-USUARIOS | `192.168.0.2` | ✅ 4/4 · 0% pérdida |
-| PC-E1-VOZ | `192.168.1.66` | ✅ 4/4 · 0% pérdida |
-| PC-E1-ADMIN | `192.168.0.2` | ✅ 4/4 · 0% pérdida |
-| PC-E2-USUARIOS | `192.168.1.2` | ✅ 4/4 · 0% pérdida |
-
-Trazas extremo a extremo verificadas:
-
-```text
-OSPF → EIGRP
-192.168.1.1 → 10.0.0.6 → 10.0.0.17 → 172.16.0.226
-
-EIGRP → OSPF
-172.16.0.1 → 10.0.0.22 → 10.0.0.5 → 192.168.1.66
-```
+- La contradicción de “3 VLANs” frente a dos VLANs detalladas se resolvió implementando una tercera VLAN 30 de administración en `172.16.0.224/28`.
+- OSPF anuncia dos caminos de métrica 21 hacia la LAN remota, logrando ECMP 50/50.
+- EIGRP usa métricas `2,170,112` y `6,510,336`; su relación 3:1 permite un reparto aproximado 75/25 con `variance 3`.
+- El resumen EIGRP hacia OSPF se implementa mediante `172.16.0.0/24` a Null0 y `redistribute static metric-type 1 subnets`, solución compatible con el IOS 1941 emulado.
+- Las rutas EIGRP específicas permanecen en R-CENTRAL y vencen al resumen Null0 por coincidencia de prefijo más largo.

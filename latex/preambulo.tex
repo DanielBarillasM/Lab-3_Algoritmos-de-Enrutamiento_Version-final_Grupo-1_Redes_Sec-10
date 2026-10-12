@@ -4,36 +4,65 @@
 \setmainfont{Latin Modern Roman}
 \setsansfont{Latin Modern Sans}
 \setmonofont{Latin Modern Mono}
-\usepackage[a4paper,margin=2.25cm,headheight=15pt]{geometry}
+\usepackage[a4paper,margin=2.15cm,headheight=15pt]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs,longtable,tabularx,array}
 \usepackage{graphicx,float}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{enumitem}
 
 \definecolor{uvgverde}{HTML}{176B52}
 \definecolor{uvgoscuro}{HTML}{103F33}
 \definecolor{grisclaro}{HTML}{F2F5F4}
 \definecolor{azulcli}{HTML}{17324D}
-\hypersetup{colorlinks=true,linkcolor=uvgoscuro,urlcolor=uvgverde,pdfauthor={Grupo 1 - CC3067},pdftitle={Laboratorio 3 - Algoritmos de Enrutamiento}}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=uvgoscuro,
+  urlcolor=uvgverde,
+  pdfauthor={Grupo 1 - CC3067},
+  pdftitle={Laboratorio 3 - Algoritmos de Enrutamiento}
+}
 
 \pagestyle{plain}
-\renewcommand{\arraystretch}{1.18}
+\renewcommand{\arraystretch}{1.20}
+\setlength{\emergencystretch}{2em}
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.25em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=1.7em,itemsep=0.25em,topsep=0.35em}
 
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 \newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
-\newenvironment{calculo}[1][]{\par\medskip\noindent\color{uvgoscuro}\hrule\smallskip\textbf{Desarrollo del calculo}\par\color{black}}{\par\smallskip\color{uvgoscuro}\hrule\color{black}\medskip}
-\newenvironment{decision}[1][]{\par\medskip\noindent\color{uvgoscuro}\hrule\smallskip\textbf{Decision de diseno}\par\color{black}}{\par\smallskip\color{uvgoscuro}\hrule\color{black}\medskip}
-\newenvironment{evidencia}[1][]{\par\medskip\noindent\color{azulcli}\hrule\smallskip\textbf{Evidencia real de Packet Tracer}\par\color{black}}{\par\smallskip\color{azulcli}\hrule\color{black}\medskip}
+\newcolumntype{R}[1]{>{\raggedleft\arraybackslash}p{#1}}
+
+\newenvironment{calculo}[1][Desarrollo del cálculo]{%
+  \par\medskip\noindent\color{uvgoscuro}\hrule\smallskip
+  \textbf{#1}\par\color{black}\smallskip
+}{%
+  \par\smallskip\color{uvgoscuro}\hrule\color{black}\medskip
+}
+
+\newenvironment{decision}[1][Decisión de diseño]{%
+  \par\medskip\noindent\color{uvgoscuro}\hrule\smallskip
+  \textbf{#1}\par\color{black}\smallskip
+}{%
+  \par\smallskip\color{uvgoscuro}\hrule\color{black}\medskip
+}
+
+\newenvironment{evidencia}[1][Evidencia real de Packet Tracer]{%
+  \par\medskip\noindent\color{azulcli}\hrule\smallskip
+  \textbf{#1}\par\color{black}\smallskip
+}{%
+  \par\smallskip\color{azulcli}\hrule\color{black}\medskip
+}
 
 \newcommand{\universidad}{Universidad del Valle de Guatemala}
 \newcommand{\curso}{CC3067 Redes}
-\newcommand{\seccion}{Seccion 10}
+\newcommand{\seccion}{Sección 10}
 \newcommand{\grupo}{Grupo 1}
 \newcommand{\integrantes}{%
 \begin{tabular}{ll}
 Pablo Daniel Barillas Moreno & 22193\\
-Andres Rafael Chivalan & 21534
+Andrés Rafael Chivalán & 21534
 \end{tabular}}
 
 \newcommand{\portadalab}[2]{%
@@ -55,4 +84,3 @@ Andres Rafael Chivalan & 21534
 \vfill
 {\large #2\par}
 \end{titlepage}}
-

@@ -1,56 +1,41 @@
-﻿\documentclass[10pt]{article}
+\documentclass[10pt]{article}
 \input{preambulo.tex}
 
 \begin{document}
-\portadalab{PDF 2: evidencias reales de Packet Tracer}{5 de octubre de 2026}
+\portadalab{PDF 2: evidencias de configuración y conectividad}{11 de octubre de 2026}
 \tableofcontents
 \newpage
 
-\section{Metodologia de evidencia}
+\section{Alcance}
 
-Las salidas de este documento fueron leidas directamente de los dispositivos de la topologia guardada. No son resultados esperados escritos antes de la prueba. Primero se verificaron enlaces e IP, luego adyacencias, tablas de enrutamiento, ECMP, DUAL, pings y trazas.
+Este documento reúne las salidas solicitadas de Packet Tracer: las tablas de enrutamiento de los cinco routers, la evidencia de balanceo OSPF y EIGRP, la redistribución con rutas resumidas y las capturas de conectividad extremo a extremo.
 
-\begin{evidencia}
-Estado de salud del proyecto: cero enlaces caidos y cero direcciones IP duplicadas. Nueve pings representativos, incluida la nueva VLAN 30, terminaron con cuatro respuestas de cuatro intentos.
-\end{evidencia}
-
-\section{Topologia implementada}
+\section{Topología implementada}
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth,trim=70 160 500 10,clip]{figuras/topologia_lab3.png}
-\caption{Topologia real construida: cinco routers, seis enlaces seriales, cuatro switches y siete hosts de prueba.}
+\caption{Topología real: cinco routers, seis enlaces seriales, cuatro switches y siete equipos finales.}
 \end{figure}
 
-Los enlaces seriales forman dos triangulos que comparten R-CENTRAL. R-OSPF-1 y R-EIGRP-1 usan router-on-a-stick. El central no tiene LAN y es el unico router con ambos protocolos.
+Los enlaces seriales forman dos triángulos que comparten R-CENTRAL. R-OSPF-1 y R-EIGRP-1 usan router-on-a-stick; R-OSPF-2 y R-EIGRP-2 usan una LAN sin VLAN adicional. R-CENTRAL no posee LAN propia y es el único router que ejecuta ambos protocolos.
 
-\section{Resumen de interfaces y gateways}
-\small
-\begin{longtable}{p{2.6cm}p{3.0cm}p{3.1cm}p{4.6cm}}
-\toprule
-Equipo & Interfaz & IP/prefijo & Funcion\\
-\midrule
-\endhead
-R-OSPF-1 & G0/0.10 & 192.168.1.1/26 & Gateway VLAN 10\\
-R-OSPF-1 & G0/0.30 & 192.168.1.65/28 & Gateway VLAN 30\\
-R-OSPF-1 & S0/0/0, S0/0/1 & 10.0.0.1/30, 10.0.0.5/30 & Directo y central\\
-R-OSPF-2 & G0/0 & 192.168.0.1/24 & Gateway LAN 200 hosts\\
-R-OSPF-2 & S0/0/0, S0/0/1 & 10.0.0.2/30, 10.0.0.9/30 & Directo y central\\
-R-CENTRAL & S0/0/0, S0/0/1 & 10.0.0.6/30, 10.0.0.10/30 & Lado OSPF\\
-R-CENTRAL & S0/1/0, S0/1/1 & 10.0.0.18/30, 10.0.0.22/30 & Lado EIGRP\\
-R-EIGRP-1 & G0/0.10, G0/0.20, G0/0.30 & 172.16.0.129/26, 172.16.0.193/27, 172.16.0.225/28 & Gateways VLAN 10, 20 y 30\\
-R-EIGRP-1 & S0/0/0, S0/0/1 & 10.0.0.13/30, 10.0.0.17/30 & Directo y central\\
-R-EIGRP-2 & G0/0 & 172.16.0.1/25 & Gateway LAN 100 hosts\\
-R-EIGRP-2 & S0/0/0, S0/0/1 & 10.0.0.14/30, 10.0.0.21/30 & Directo y central\\
-\bottomrule
-\end{longtable}
-\normalsize
+\begin{decision}[Resolución de la tercera VLAN de R-EIGRP-1]
+El rol general exige tres VLANs, aunque la tabla detallada enumera solo dos. Se implementó VLAN 30 de administración/servidores en \texttt{172.16.0.224/28}, con gateway \texttt{172.16.0.225} y host de prueba \texttt{172.16.0.226}.
+\end{decision}
 
-\section{Tablas de enrutamiento de los cinco routers}
+\section{Configuración base}
 
-Para evitar que el paginador de la consola oculte lineas, la tabla se consulto por origen con \texttt{show ip route connected}, \texttt{show ip route ospf} y \texttt{show ip route eigrp}. En conjunto equivalen a la tabla completa y permiten distinguir el origen de cada ruta.
+R-OSPF-1 enruta las VLAN 10 y 30; R-EIGRP-1 enruta las VLAN 10, 20 y 30. En ambos protocolos se utilizó \texttt{passive-interface default} y se habilitaron únicamente los enlaces seriales que forman vecindades. De esta manera las LAN/VLAN se anuncian sin enviar mensajes de descubrimiento hacia los equipos finales.
+
+\section{Lectura de las tablas de enrutamiento}
+
+Los códigos usados son: \texttt{C} conectada, \texttt{L} local /32, \texttt{O} OSPF interna, \texttt{O E1} OSPF externa tipo 1, \texttt{D} EIGRP interna y \texttt{S} estática. Las líneas siguientes transcriben las rutas materiales mostradas por \texttt{show ip route}; se omiten únicamente encabezados repetitivos y rutas locales /32 que no cambian la decisión de reenvío.
+
+\section{Salida de \texttt{show ip route} en los cinco routers}
 
 \subsection{R-OSPF-1}
 \begin{verbatim}
+R-OSPF-1# show ip route
 C 10.0.0.0/30       is directly connected, Serial0/0/0
 C 10.0.0.4/30       is directly connected, Serial0/0/1
 C 192.168.1.0/26    is directly connected, GigabitEthernet0/0.10
@@ -59,9 +44,11 @@ O 192.168.0.0/24 [110/21] via 10.0.0.2, Serial0/0/0
                    [110/21] via 10.0.0.6, Serial0/0/1
 O E1 172.16.0.0/24 [110/30] via 10.0.0.6, Serial0/0/1
 \end{verbatim}
+Interpretación: las VLAN locales aparecen como conectadas; la LAN de R-OSPF-2 tiene dos rutas ECMP; todo EIGRP aparece como una única externa E1 /24.
 
 \subsection{R-OSPF-2}
 \begin{verbatim}
+R-OSPF-2# show ip route
 C 10.0.0.0/30    is directly connected, Serial0/0/0
 C 10.0.0.8/30    is directly connected, Serial0/0/1
 C 192.168.0.0/24 is directly connected, GigabitEthernet0/0
@@ -71,9 +58,11 @@ O 192.168.1.64/28 [110/21] via 10.0.0.1, Serial0/0/0
                    [110/21] via 10.0.0.10, Serial0/0/1
 O E1 172.16.0.0/24 [110/30] via 10.0.0.10, Serial0/0/1
 \end{verbatim}
+Interpretación: ambas VLAN de R-OSPF-1 se alcanzan por dos next hops de costo 21; el dominio EIGRP permanece resumido.
 
 \subsection{R-CENTRAL}
 \begin{verbatim}
+R-CENTRAL# show ip route
 C 10.0.0.4/30  is directly connected, Serial0/0/0
 C 10.0.0.8/30  is directly connected, Serial0/0/1
 C 10.0.0.16/30 is directly connected, Serial0/1/0
@@ -88,9 +77,11 @@ D 172.16.0.224/28 [90/1686016] via 10.0.0.17, Serial0/1/0
 S 172.16.0.0/24 is directly connected, Null0
 D 192.168.0.0/23 is a summary, Null0
 \end{verbatim}
+Interpretación: el central conserva rutas específicas hacia ambos dominios y, simultáneamente, origina los dos objetos de resumen.
 
 \subsection{R-EIGRP-1}
 \begin{verbatim}
+R-EIGRP-1# show ip route
 C 10.0.0.12/30     is directly connected, Serial0/0/0
 C 10.0.0.16/30     is directly connected, Serial0/0/1
 C 172.16.0.128/26  is directly connected, GigabitEthernet0/0.10
@@ -100,9 +91,11 @@ D 172.16.0.0/25 [90/2170112] via 10.0.0.14, Serial0/0/0
                  [90/6510336] via 10.0.0.18, Serial0/0/1
 D 192.168.0.0/23 [90/6996480] via 10.0.0.18, Serial0/0/1
 \end{verbatim}
+Interpretación: la LAN remota EIGRP tiene dos rutas instaladas con relación de métricas 3:1; OSPF llega como un único /23.
 
 \subsection{R-EIGRP-2}
 \begin{verbatim}
+R-EIGRP-2# show ip route
 C 10.0.0.12/30  is directly connected, Serial0/0/0
 C 10.0.0.20/30  is directly connected, Serial0/0/1
 C 172.16.0.0/25 is directly connected, GigabitEthernet0/0
@@ -114,10 +107,33 @@ D 172.16.0.224/28 [90/2172416] via 10.0.0.13, Serial0/0/0
                    [90/6512640] via 10.0.0.22, Serial0/0/1
 D 192.168.0.0/23 [90/6996480] via 10.0.0.22, Serial0/0/1
 \end{verbatim}
+Interpretación: las tres VLAN de R-EIGRP-1 disponen de camino directo y alterno; el dominio OSPF permanece resumido.
 
 \section{Evidencia OSPF de costo igual}
 
-\begin{evidencia}[title={Comando: show ip route 192.168.0.0 en R-OSPF-1}]
+El enunciado pide \texttt{show ip ospf interface}. Ese comando demuestra área, vecino y costo de una interfaz, pero no lista los dos next hops. Por eso se incluye el comando solicitado y se complementa con \texttt{show ip route 192.168.0.0}, que sí demuestra ECMP.
+
+\begin{evidencia}[Comando solicitado: show ip ospf interface Serial0/0/0]
+\begin{verbatim}
+R-OSPF-1# show ip ospf interface Serial0/0/0
+Serial0/0/0 is up, line protocol is up
+  Internet address is 10.0.0.1/30, Area 0
+  Process ID 1, Router ID 1.1.1.1
+  Network Type POINT-TO-POINT, Cost: 20
+  Neighbor Count is 1, Adjacent neighbor count is 1
+    Adjacent with neighbor 2.2.2.2
+\end{verbatim}
+\end{evidencia}
+
+\begin{calculo}[Cálculo de los dos caminos]
+\[
+C_{directo}=20+1=21,
+\qquad
+C_{\text{vía central}}=10+10+1=21.
+\]
+\end{calculo}
+
+\begin{evidencia}[Prueba de ECMP: show ip route 192.168.0.0]
 \begin{verbatim}
 Routing entry for 192.168.0.0/24
 Known via "ospf 1", distance 110, metric 21, type intra area
@@ -129,22 +145,11 @@ Known via "ospf 1", distance 110, metric 21, type intra area
 \end{verbatim}
 \end{evidencia}
 
-\begin{evidencia}[title={Comando solicitado: show ip ospf interface Serial0/0/0}]
-\begin{verbatim}
-Serial0/0/0 is up, line protocol is up
-  Internet address is 10.0.0.1/30, Area 0
-  Process ID 1, Router ID 1.1.1.1
-  Network Type POINT-TO-POINT, Cost: 20
-  Neighbor Count is 1, Adjacent neighbor count is 1
-    Adjacent with neighbor 2.2.2.2
-\end{verbatim}
-\end{evidencia}
+Los dos bloques tienen métrica 21 y \texttt{traffic share count 1}; por tanto, OSPF instala reparto 1:1.
 
-Los dos siguientes saltos tienen metrica 21. El primero usa el enlace directo y el segundo pasa por R-CENTRAL. La salida de \texttt{show ip ospf interface} confirma area, estado, vecino y costo del enlace; \texttt{show ip route} demuestra los dos caminos instalados porque es el comando que lista los siguientes saltos.
+\section{Evidencia EIGRP 75/25 y condición de factibilidad}
 
-\section{Evidencia EIGRP 75/25 y condicion de factibilidad}
-
-\begin{evidencia}[title={Comando: show ip eigrp topology 172.16.0.0 255.255.255.128}]
+\begin{evidencia}[show ip eigrp topology 172.16.0.0 255.255.255.128]
 \begin{verbatim}
 IP-EIGRP (AS 100): Topology entry for 172.16.0.0/25
   State is Passive, 2 Successor(s), FD is 2170112
@@ -158,11 +163,47 @@ IP-EIGRP (AS 100): Topology entry for 172.16.0.0/25
 \end{verbatim}
 \end{evidencia}
 
-Antes de aplicar \texttt{variance}, el camino directo es el sucesor y el camino por el central es sucesor factible porque $1\,683\,712<2\,170\,112$. Con \texttt{variance 3} ambos se instalan; la relacion de metricas es exactamente $3:1$, de donde se obtiene el reparto aproximado 75/25.
+\begin{center}
+\begin{tabular}{l r r l}
+\toprule
+Camino & Métrica/FD & RD & Papel\\
+\midrule
+Directo por 10.0.0.14 & 2,170,112 & 2,816 & Sucesor\\
+Vía central por 10.0.0.18 & 6,510,336 & 1,683,712 & Sucesor factible\\
+\bottomrule
+\end{tabular}
+\end{center}
 
-\section{Redistribucion y resumen}
+La factibilidad se cumple porque
+\[
+1\,683\,712<2\,170\,112.
+\]
+La relación de métricas es
+\[
+\frac{6\,510\,336}{2\,170\,112}=3.
+\]
+Con \texttt{variance 3}, \texttt{maximum-paths 2} y \texttt{traffic-share balanced}, la proporción inversa es aproximadamente 75\% por el camino principal y 25\% por el alterno.
 
-\begin{evidencia}[title={Ruta resumida vista desde ambos routers EIGRP}]
+\section{Redistribución y sumarización}
+
+\subsection{OSPF hacia EIGRP}
+EIGRP exige una métrica semilla para rutas externas:
+\begin{verbatim}
+router eigrp 100
+ redistribute ospf 1 metric 1544 20000 255 1 1500
+ maximum-paths 2
+ variance 3
+ traffic-share balanced
+\end{verbatim}
+Los cinco valores son ancho de banda, retardo en decenas de microsegundo, confiabilidad, carga y MTU. El resumen se publica en las dos interfaces EIGRP de R-CENTRAL:
+\begin{verbatim}
+interface Serial0/1/0
+ ip summary-address eigrp 100 192.168.0.0 255.255.254.0
+interface Serial0/1/1
+ ip summary-address eigrp 100 192.168.0.0 255.255.254.0
+\end{verbatim}
+
+\begin{evidencia}[Una sola ruta OSPF resumida en cada router EIGRP]
 \begin{verbatim}
 R-EIGRP-1# show ip route 192.168.0.0 255.255.254.0
 Known via "eigrp 100", distance 90, metric 6996480
@@ -174,9 +215,15 @@ Known via "eigrp 100", distance 90, metric 6996480
 \end{verbatim}
 \end{evidencia}
 
-Las redes del otro dominio aparecen como OSPF E1, lo que demuestra la redistribucion desde EIGRP hacia OSPF. En sentido opuesto, la metrica semilla EIGRP configurada fue \texttt{1544 20000 255 1 1500}. La ruta OSPF se anuncia al lado EIGRP como el resumen \texttt{192.168.0.0/23}.
+\subsection{EIGRP hacia OSPF}
+El IOS 1941 emulado no admite el mecanismo probado para resumir externas OSPF. La solución compatible conserva las rutas EIGRP específicas en R-CENTRAL, crea el agregado /24 y redistribuye únicamente esa estática como E1:
+\begin{verbatim}
+ip route 172.16.0.0 255.255.255.0 Null0
+router ospf 1
+ redistribute static metric-type 1 subnets
+\end{verbatim}
 
-\begin{evidencia}[title={Resumen EIGRP publicado como una sola externa OSPF E1}]
+\begin{evidencia}[Una sola externa OSPF E1 para todo el dominio EIGRP]
 \begin{verbatim}
 R-CENTRAL# show ip route static
 S 172.16.0.0/24 is directly connected, Null0
@@ -186,48 +233,39 @@ O E1 172.16.0.0/24 [110/30] via 10.0.0.6, Serial0/0/1
 \end{verbatim}
 \end{evidencia}
 
-El IOS emulado no admite \texttt{summary-address} para las externas OSPF. La solucion compatible crea \texttt{172.16.0.0/24} hacia Null0 en R-CENTRAL y redistribuye esa unica estatica con \texttt{redistribute static metric-type 1 subnets}. Las rutas EIGRP especificas permanecen en el central y ganan por coincidencia de prefijo mas largo, por lo que Null0 no afecta la conectividad. El lado OSPF recibe exactamente una ruta E1 para todo el dominio EIGRP.
-
-\section{Pruebas de conectividad}
-
-Despues de resolver ARP con una primera prueba, la matriz final fue:
+Las rutas /25, /26, /27 y /28 ganan sobre /24 por coincidencia de prefijo más largo, de modo que Null0 no descarta tráfico válido. E1 suma el costo externo y el costo interno hasta R-CENTRAL.
 
 \begin{center}
-\begin{tabularx}{\textwidth}{Y l C{1.8cm} C{2cm}}
+\begin{tabularx}{\textwidth}{l l Y}
 \toprule
-Origen & Destino & Recibidos & Perdida\\
+Dirección & Resumen recibido & Resultado\\
 \midrule
-PC-O1-USUARIOS & 172.16.0.2 & 4/4 & 0\%\\
-PC-O1-USUARIOS & 172.16.0.226 & 4/4 & 0\%\\
-PC-O1-ADMIN & 172.16.0.194 & 4/4 & 0\%\\
-PC-O2-USUARIOS & 172.16.0.130 & 4/4 & 0\%\\
-PC-O2-USUARIOS & 172.16.0.226 & 4/4 & 0\%\\
-PC-E1-USUARIOS & 192.168.0.2 & 4/4 & 0\%\\
-PC-E1-VOZ & 192.168.1.66 & 4/4 & 0\%\\
-PC-E1-ADMIN & 192.168.0.2 & 4/4 & 0\%\\
-PC-E2-USUARIOS & 192.168.1.2 & 4/4 & 0\%\\
+OSPF $\rightarrow$ EIGRP & \texttt{192.168.0.0/23} & Una ruta D en cada router EIGRP\\
+EIGRP $\rightarrow$ OSPF & \texttt{172.16.0.0/24} & Una ruta O E1 en cada router OSPF\\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\subsection{Captura del ping extremo a extremo}
+\section{Conectividad extremo a extremo}
+
+La prueba solicitada se realizó desde \texttt{PC-O1-USUARIOS} hacia \texttt{PC-E1-ADMIN} (\texttt{172.16.0.226}). Después de la resolución ARP se obtuvieron cuatro respuestas y 0\% de pérdida.
+
+\subsection{Captura literal del ping}
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{figuras/evidencia_ping.png}
-\caption{Ping real desde PC-O1-USUARIOS hacia PC-E1-ADMIN: 4/4 respuestas y 0\% de perdida.}
+\includegraphics[width=0.92\textwidth]{figuras/evidencia_ping.png}
+\caption{Ping real de PC-O1-USUARIOS a PC-E1-ADMIN (172.16.0.226): 4/4 respuestas y 0\% de pérdida.}
 \end{figure}
 
-\subsection{Captura del tracert extremo a extremo}
+\subsection{Captura literal del \texttt{tracert}}
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{figuras/evidencia_tracert.png}
-\caption{Traza real OSPF hacia EIGRP: gateway OSPF, R-CENTRAL, R-EIGRP-1 y host destino.}
+\includegraphics[width=0.92\textwidth]{figuras/evidencia_tracert.png}
+\caption{Traza OSPF a EIGRP: 192.168.1.1, R-CENTRAL, R-EIGRP-1 y 172.16.0.226.}
 \end{figure}
 
-\section{Conclusion de verificacion}
+\section{Conclusiones}
 
-La topologia satisface conectividad extremo a extremo entre las siete LAN/VLAN. OSPF mantiene dos caminos de costo igual; EIGRP cumple la condicion de factibilidad e instala dos rutas con relacion de metrica 3:1. R-CENTRAL conserva el alcance entre protocolos y publica un solo resumen por dominio: \texttt{192.168.0.0/23} hacia EIGRP y \texttt{172.16.0.0/24} como OSPF E1.
+La topología permite comunicación entre ambos dominios. OSPF conserva dos caminos de costo igual; EIGRP instala el sucesor y el sucesor factible con \texttt{variance 3}; y R-CENTRAL intercambia una ruta resumida por cada dominio.
 
 \end{document}
-
-
