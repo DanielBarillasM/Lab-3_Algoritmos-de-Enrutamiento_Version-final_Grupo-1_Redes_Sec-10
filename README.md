@@ -28,7 +28,6 @@ Lab-3_Algoritmos-de-Enrutamiento_Version-final_Grupo-1_Redes_Sec-10/
 │   │   ├── evidencia_ping.png
 │   │   ├── evidencia_tracert.png
 │   │   └── topologia_lab3.png
-│   ├── PDF1_VLSM_y_Conceptos.tex
 │   ├── PDF2_Evidencias_Packet_Tracer.tex
 │   └── preambulo.tex
 ├── packet-tracer/
@@ -42,10 +41,9 @@ Lab-3_Algoritmos-de-Enrutamiento_Version-final_Grupo-1_Redes_Sec-10/
 
 | Archivo | Contenido |
 |:--|:--|
-| [PDF 1](Informes/pdf/PDF1_VLSM_y_Conceptos.pdf) | Cálculos VLSM, direccionamiento, sumarización y conceptos |
+| [PDF 1](Informes/pdf/PDF1_VLSM_y_Conceptos.pdf) | Cálculos VLSM, direccionamiento, sumarización y conceptos a mano|
 | [PDF 2](Informes/pdf/PDF2_Evidencias_Packet_Tracer.pdf) | Tablas de los 5 routers, ECMP, DUAL, redistribución, ping y `tracert` |
 | [Proyecto Packet Tracer](packet-tracer/Lab3_Algoritmos_Enrutamiento_Grupo1.pkt) | Topología funcional y configurada |
-| [Fuente PDF 1](latex/PDF1_VLSM_y_Conceptos.tex) | Documento LaTeX editable / Referencia |
 | [Fuente PDF 2](latex/PDF2_Evidencias_Packet_Tracer.tex) | Documento LaTeX editable |
 
 ## Topología implementada
